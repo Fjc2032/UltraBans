@@ -1,17 +1,19 @@
-package dev.Fjc.ultraBans.file.mutes;
+package dev.Fjc.ultraBans.api.mutes;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.TemporalUnit;
 import java.util.Date;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Represents an abstract list of {@link MuteEntry} entries.
- * @param <P> The target of said entry
+ * @param <P> The target of said entry. A target can only have one entry. If a new one is applied,
+ *           the old one is overwritten.
  */
 public interface MuteList<P> {
 
@@ -24,7 +26,7 @@ public interface MuteList<P> {
 
     MuteEntry<P> addMute(@NotNull P target, @Nullable String reason, @Nullable Date expiration, String source);
 
-    MuteEntry<P> addMute(@NotNull P target, @Nullable String reason, @Nullable Duration duration, TemporalUnit unit, String source);
+    MuteEntry<P> addMute(@NotNull P target, @Nullable String reason, @Nullable Duration duration, String source);
 
     boolean removeMute(@NotNull P target);
 
@@ -35,5 +37,12 @@ public interface MuteList<P> {
     boolean isMuted(@NotNull P target);
 
     void clear();
+
+    interface Store<P> {
+
+        Map<P, MuteEntry<P>> load();
+
+        void save(P target);
+    }
 
 }

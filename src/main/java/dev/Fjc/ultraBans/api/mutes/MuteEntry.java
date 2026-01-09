@@ -1,18 +1,20 @@
-package dev.Fjc.ultraBans.file.mutes;
+package dev.Fjc.ultraBans.api.mutes;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
+import dev.Fjc.ultraBans.UltraBans;
+import dev.Fjc.ultraBans.api.mutes.backers.StringMuteList;
 import dev.Fjc.ultraBans.file.Keys;
-import dev.Fjc.ultraBans.file.mutes.backers.UltraMuteList;
+import dev.Fjc.ultraBans.api.mutes.backers.UltraMuteList;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAmount;
 import java.time.temporal.TemporalUnit;
 import java.util.Date;
 import java.util.Locale;
@@ -24,13 +26,12 @@ import java.util.UUID;
  */
 public class MuteEntry<P> {
 
-    private MuteEntry<P> instance;
-
-    private final P muteTarget;
+    private final @NotNull P muteTarget;
     private String source;
 
     private Date creationTime;
-    private @Nullable Long duration;
+    private @Nullable Long durationAsLong;
+    private @Nullable Duration duration;
 
     private @Nullable String reason;
 
@@ -39,11 +40,26 @@ public class MuteEntry<P> {
      * @param muteTarget The target being muted
      * @param source Who is muting the target. Can be any string, but it's recommended to put a unique identifier or UUID
      * @param creationTime The date this was created
-     * @param duration How long the mute will last
+     * @param durationAsLong How long the mute will last
      * @param reason The reason assigned for this mute. If left null, a default reason will be applied.
      */
-    public MuteEntry(P muteTarget, String source, Date creationTime, @Nullable Long duration, @Nullable String reason) {
-        instance = this;
+    public MuteEntry(@NotNull P muteTarget, String source, Date creationTime, @Nullable Long durationAsLong, @Nullable String reason) {
+        this.muteTarget = muteTarget;
+        this.source = source;
+        this.creationTime = creationTime;
+        this.durationAsLong = durationAsLong;
+        this.reason = reason;
+    }
+
+    /**
+     * A class that represents a mute entry. A mute entry contains basic information about a player who was muted.
+     * @param muteTarget The target being muted
+     * @param source The source muting the target. Can be any string, but a unique identifier is recommended
+     * @param creationTime The date this was created
+     * @param duration The duration of the mute, as a {@link Duration}, or null to imply infinite
+     * @param reason The reason, or null to defer to default
+     */
+    public MuteEntry(@NotNull P muteTarget, String source, Date creationTime, @Nullable Duration duration, @Nullable String reason) {
         this.muteTarget = muteTarget;
         this.source = source;
         this.creationTime = creationTime;
@@ -63,9 +79,14 @@ public class MuteEntry<P> {
         return this.creationTime;
     }
 
-    @Nullable
-    public Long getDuration() {
+    public Duration getDuration() {
+        if (this.duration == null) this.duration = ChronoUnit.FOREVER.getDuration();
         return this.duration;
+    }
+
+    @Nullable
+    public Long getDurationAsLong() {
+        return this.durationAsLong;
     }
 
     @NotNull
@@ -80,8 +101,8 @@ public class MuteEntry<P> {
 
     @Nullable
     public Date getExpiry() {
-        if (duration == null) return null;
-        long time = this.creationTime.getTime() + duration;
+        if (durationAsLong == null) return null;
+        long time = this.creationTime.getTime() + durationAsLong;
 
         return new Date(time);
     }
@@ -94,9 +115,9 @@ public class MuteEntry<P> {
 
     @Nullable
     public LocalDateTime getRemainingTimeAsLocalDate() {
-        if (duration == null) return null;
+        if (durationAsLong == null) return null;
         LocalDateTime current = LocalDateTime.now();
-        LocalDateTime end = current.plus(Duration.ofSeconds(duration));
+        LocalDateTime end = current.plus(Duration.ofSeconds(durationAsLong));
 
         LocalDateTime n = current;
         long years = ChronoUnit.YEARS.between(n, end);
@@ -121,9 +142,9 @@ public class MuteEntry<P> {
     }
 
     public long getRemainingTimeWithRespectToUnit(TemporalUnit unit) {
-        if (duration == null) return -1;
+        if (durationAsLong == null) return -1;
         LocalDateTime current = LocalDateTime.now();
-        LocalDateTime end = current.plus(duration, unit);
+        LocalDateTime end = current.plus(durationAsLong, unit);
 
         return ChronoUnit.valueOf(unit.toString().toUpperCase(Locale.ROOT)).between(current, end);
 
@@ -146,8 +167,8 @@ public class MuteEntry<P> {
         this.reason = reason;
     }
 
-    public void setDuration(@NotNull Long duration) {
-        this.duration = duration;
+    public void setDurationAsLong(@NotNull Long durationAsLong) {
+        this.durationAsLong = durationAsLong;
     }
 
     //Setters
@@ -162,11 +183,21 @@ public class MuteEntry<P> {
         return getRemainingTime() == -1;
     }
 
-    public boolean save(@Nullable TemporalUnit unit) {
-        UltraMuteList<P> muteList = new UltraMuteList<>();
-        muteList.addMute(muteTarget, reason, duration != null ? new Date(duration) : null, source);
+    public boolean save() {
+        boolean isMuted;
+        if (muteTarget instanceof PlayerProfile profile) {
+            UltraMuteList<@NotNull PlayerProfile> muteList = new UltraMuteList<>();
+            muteList.addMute(profile, reason, duration, source);
 
-        return muteList.isMuted(muteTarget);
+            isMuted = muteList.isMuted(profile);
+        }
+        else {
+            StringMuteList<String> muteList = new StringMuteList<>();
+            muteList.addMute(muteTarget.toString(), reason, duration, source);
+            isMuted = muteList.isMuted(muteTarget.toString());
+        }
+
+        return isMuted;
     }
 
     /**
@@ -174,16 +205,8 @@ public class MuteEntry<P> {
      * @return Whether the removal was successful
      */
     public boolean remove() {
-        PersistentDataContainer container = null;
+        PersistentDataContainer container;
         if (muteTarget instanceof Player player) {
-            container = player.getPersistentDataContainer();
-            container.remove(Keys.commandsBlocked);
-            container.remove(Keys.mutedKey);
-        }
-        if (muteTarget instanceof UUID uuid) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player == null) return false;
-
             container = player.getPersistentDataContainer();
             container.remove(Keys.commandsBlocked);
             container.remove(Keys.mutedKey);
@@ -193,13 +216,44 @@ public class MuteEntry<P> {
             if (uuid == null) return false;
             Player player = Bukkit.getPlayer(uuid);
             if (player == null) return false;
+
+            container = player.getPersistentDataContainer();
+            container.remove(Keys.commandsBlocked);
+            container.remove(Keys.mutedKey);
+        }
+        else {
+            final UltraBans plugin = UltraBans.getInstance();
+            Player player = plugin.getServer().getPlayer(muteTarget.toString());
+            if (player == null) return false;
+
             container = player.getPersistentDataContainer();
             container.remove(Keys.commandsBlocked);
             container.remove(Keys.mutedKey);
         }
 
-        setDuration(0L);
-        instance = null;
-        return container != null && !container.has(Keys.mutedKey);
+        setDurationAsLong(0L);
+        return !container.has(Keys.mutedKey);
+    }
+
+    public static class Manager {
+        private static final UltraBans plugin = UltraBans.getInstance();
+        private static final BukkitScheduler scheduler = plugin.getServer().getScheduler();
+
+        /**
+         * Registers an entry to a scheduler. This will prevent mute durations from being
+         * lost after a restart.
+         * @param entry The entry to register
+         * @return True if the entry is expired and consequently, removed. False if the entry is still valid.
+         * A permanent mute will always return false.
+         */
+        public boolean register(MuteEntry<?> entry) {
+
+            if (entry.isPermanent()) return false;
+
+            long delay = entry.getRemainingTime();
+            scheduler.runTaskLater(plugin, entry::remove, delay);
+
+            return entry.isExpired();
+        }
     }
 }
