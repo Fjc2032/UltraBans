@@ -2,7 +2,7 @@ package dev.Fjc.ultraBans.api.warns.backers;
 
 import dev.Fjc.ultraBans.api.warns.WarnEntry;
 import dev.Fjc.ultraBans.api.warns.WarnList;
-import dev.Fjc.ultraBans.file.EntrySaver;
+import dev.Fjc.ultraBans.file.yaml.EntrySaver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,7 +58,7 @@ public class StringWarnList<R extends String> implements WarnList<String>, WarnL
     }
 
     @Override
-    public boolean removeWarn(String target, int index) {
+    public boolean removeWarn(String target, int index, String identifier) {
         WarnEntry<?> removed = entries.get(target).remove(index);
 
         return !entries.get(target).contains(removed);

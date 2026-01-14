@@ -1,5 +1,6 @@
 package dev.Fjc.ultraBans;
 
+import dev.Fjc.ultraBans.file.database.SQLiteManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class UltraBans extends JavaPlugin {
@@ -12,6 +13,7 @@ public final class UltraBans extends JavaPlugin {
     public void onEnable() {
         instance = this;
         booter.load();
+
     }
 
     @Override

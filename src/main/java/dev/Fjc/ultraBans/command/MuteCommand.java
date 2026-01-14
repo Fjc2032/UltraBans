@@ -4,6 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import dev.Fjc.ultraBans.UltraBans;
 import dev.Fjc.ultraBans.api.mutes.MuteList;
 import dev.Fjc.ultraBans.api.mutes.backers.UltraMuteList;
+import dev.Fjc.ultraBans.builders.Checker;
 import dev.Fjc.ultraBans.builders.Punishment;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -129,7 +130,7 @@ public class MuteCommand implements TabExecutor {
         public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
             if (args.length == 1) {
                 List<String> mutedPlayers = new ArrayList<>();
-                muteList.getEntries().forEach(entry -> mutedPlayers.add(entry.getMuteTarget().getName()));
+                muteList.getEntries().forEach(entry -> mutedPlayers.add(entry.getTarget().getName()));
                 return mutedPlayers;
             }
             return List.of();

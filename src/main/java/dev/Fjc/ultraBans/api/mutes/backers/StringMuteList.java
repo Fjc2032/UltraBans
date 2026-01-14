@@ -2,7 +2,7 @@ package dev.Fjc.ultraBans.api.mutes.backers;
 
 import dev.Fjc.ultraBans.api.mutes.MuteEntry;
 import dev.Fjc.ultraBans.api.mutes.MuteList;
-import dev.Fjc.ultraBans.file.EntrySaver;
+import dev.Fjc.ultraBans.file.yaml.EntrySaver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,7 +19,7 @@ public class StringMuteList<P extends String> implements MuteList<String>, MuteL
     private final Map<String, MuteEntry<String>> entries = new ConcurrentHashMap<>();
 
     public StringMuteList() {
-        entries.put()
+        entries.putAll(saver.loadStringMap());
     }
 
     @Override

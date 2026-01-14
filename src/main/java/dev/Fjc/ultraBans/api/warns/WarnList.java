@@ -39,12 +39,13 @@ public interface WarnList<R> {
     int getWarnCount(R target);
 
     /**
-     * Removes a warn entry from the target by index
+     * Removes a warn entry from the target by a specific ID
      * @param target The target the warn entry is assigned to
-     * @param index The specific warn to remove
+     * @param index The index of the warn entry
+     * @param identifier The specific warn to remove, or null if not available
      * @return Whether the removal was successful
      */
-    boolean removeWarn(R target, int index);
+    boolean removeWarn(R target, int index, @Nullable String identifier);
 
     /**
      * Removes all warns from a target

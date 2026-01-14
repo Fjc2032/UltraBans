@@ -4,7 +4,7 @@ import com.destroystokyo.paper.profile.PlayerProfile;
 import dev.Fjc.ultraBans.UltraBans;
 import dev.Fjc.ultraBans.api.warns.WarnEntry;
 import dev.Fjc.ultraBans.builders.data.MutedDataType;
-import dev.Fjc.ultraBans.file.EntrySaver;
+import dev.Fjc.ultraBans.file.yaml.EntrySaver;
 import dev.Fjc.ultraBans.file.Keys;
 import dev.Fjc.ultraBans.api.mutes.MuteEntry;
 import net.kyori.adventure.text.Component;

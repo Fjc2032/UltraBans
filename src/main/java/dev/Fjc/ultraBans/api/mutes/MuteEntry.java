@@ -2,6 +2,7 @@ package dev.Fjc.ultraBans.api.mutes;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import dev.Fjc.ultraBans.UltraBans;
+import dev.Fjc.ultraBans.api.Entry;
 import dev.Fjc.ultraBans.api.mutes.backers.StringMuteList;
 import dev.Fjc.ultraBans.file.Keys;
 import dev.Fjc.ultraBans.api.mutes.backers.UltraMuteList;
@@ -24,9 +25,9 @@ import java.util.UUID;
  * Represents a mute entry.
  * @param <P> A player conforming object that will be assigned to this entry
  */
-public class MuteEntry<P> {
+public class MuteEntry<P> implements Entry<P> {
 
-    private final @NotNull P muteTarget;
+    private final P muteTarget;
     private String source;
 
     private Date creationTime;
@@ -67,10 +68,19 @@ public class MuteEntry<P> {
         this.reason = reason;
     }
 
+    public MuteEntry() {
+        this.muteTarget = null;
+        this.source = null;
+        this.creationTime = null;
+        this.durationAsLong = null;
+        this.duration = null;
+        this.reason = null;
+    }
+
     //Getters
 
-    @NotNull
-    public P getMuteTarget() {
+    @Override
+    public P getTarget() {
         return this.muteTarget;
     }
 
@@ -89,12 +99,14 @@ public class MuteEntry<P> {
         return this.durationAsLong;
     }
 
+    @Override
     @NotNull
-    public String getSource() {
+    public String source() {
         return this.source;
     }
 
-    public String getReason() {
+    @Override
+    public String reason() {
         if (reason == null) return "No reason specified";
         return this.reason;
     }
@@ -113,8 +125,9 @@ public class MuteEntry<P> {
         return getExpiry().getTime() - current;
     }
 
+    @Override
     @Nullable
-    public LocalDateTime getRemainingTimeAsLocalDate() {
+    public LocalDateTime creationTime() {
         if (durationAsLong == null) return null;
         LocalDateTime current = LocalDateTime.now();
         LocalDateTime end = current.plus(Duration.ofSeconds(durationAsLong));
@@ -139,6 +152,11 @@ public class MuteEntry<P> {
 
         n = n.plusSeconds(seconds);
         return n;
+    }
+
+    @Override
+    public Type type() {
+        return Type.MUTE;
     }
 
     public long getRemainingTimeWithRespectToUnit(TemporalUnit unit) {

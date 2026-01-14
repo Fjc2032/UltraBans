@@ -1,11 +1,13 @@
-package dev.Fjc.ultraBans.command;
+package dev.Fjc.ultraBans.builders;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.permissions.Permission;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Set;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.util.Date;
 
 public abstract class Checker {
 
@@ -37,7 +39,20 @@ public abstract class Checker {
         return sender.isOp() && !target.isOp() && !equals;
     }
 
-    public static boolean conditionsMet(@NotNull CommandSender sender, Player target, Set<Permission> permissions) {
+    /**
+     * Parses a string into a {@link Date} object, if possible.
+     * @param source The string to parse
+     * @return A new {@link Date} object, or null if the string cannot be parsed
+     */
+    public static @Nullable Date parse(String source) {
+        Date result;
 
+        try {
+            result = DateFormat.getDateTimeInstance().parse(source);
+        } catch (ParseException e) {
+            result = null;
+        }
+
+        return result;
     }
 }

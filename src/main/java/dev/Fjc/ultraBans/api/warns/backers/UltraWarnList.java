@@ -1,9 +1,12 @@
 package dev.Fjc.ultraBans.api.warns.backers;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
+import dev.Fjc.ultraBans.UltraBans;
+import dev.Fjc.ultraBans.api.Entry;
 import dev.Fjc.ultraBans.api.warns.WarnEntry;
 import dev.Fjc.ultraBans.api.warns.WarnList;
-import dev.Fjc.ultraBans.file.EntrySaver;
+import dev.Fjc.ultraBans.file.database.SQLiteManager;
+import dev.Fjc.ultraBans.file.yaml.EntrySaver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,6 +26,7 @@ import java.util.Map;
 public class UltraWarnList<R extends PlayerProfile> implements WarnList<PlayerProfile>, WarnList.Store<PlayerProfile> {
 
     private final EntrySaver.WarnSaver<@NotNull PlayerProfile> saver;
+    private final SQLiteManager manager = UltraBans.getBooter().getSqLiteManager();
 
     private final Map<PlayerProfile, List<WarnEntry<@NotNull PlayerProfile>>> entries = new HashMap<>();
 
@@ -45,6 +49,8 @@ public class UltraWarnList<R extends PlayerProfile> implements WarnList<PlayerPr
 
         if (entries.containsKey(target)) entries.replace(target, currents);
         else entries.put(target, currents);
+
+        manager.addEntry(newEntry);
         save(target);
         return newEntry;
     }
@@ -55,20 +61,25 @@ public class UltraWarnList<R extends PlayerProfile> implements WarnList<PlayerPr
     }
 
     @Override
-    public boolean removeWarn(PlayerProfile target, int index) {
+    public boolean removeWarn(PlayerProfile target, int index, String identifier) {
         var removed = entries.get(target).remove(index);
-        return saver.remove(removed);
+        return saver.remove(removed) && manager.removeEntry(target.getName(), identifier);
     }
 
     @Override
     public boolean clearWarns(PlayerProfile target) {
         entries.get(target).clear();
-        for (WarnEntry<@NotNull PlayerProfile> entry : entries.get(target)) saver.remove(entry);
+        for (WarnEntry<@NotNull PlayerProfile> entry : entries.get(target)) {
+            saver.remove(entry);
+            manager.removeEntry(target.getName());
+        }
         return entries.get(target).isEmpty();
     }
 
     @Override
     public void wipe() {
+        manager.wipeDir(Entry.Type.WARN);
+        for (PlayerProfile target : entries.keySet()) clearWarns(target);
         entries.clear();
     }
 
@@ -79,6 +90,8 @@ public class UltraWarnList<R extends PlayerProfile> implements WarnList<PlayerPr
 
     @Override
     public void save(PlayerProfile target) {
-        for (WarnEntry<@NotNull PlayerProfile> entry : entries.get(target)) saver.save(entry);
+        for (WarnEntry<@NotNull PlayerProfile> entry : entries.get(target)) {
+            saver.save(entry);
+        }
     }
 }

@@ -3,7 +3,7 @@ package dev.Fjc.ultraBans.api.mutes.backers;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import dev.Fjc.ultraBans.api.mutes.MuteEntry;
 import dev.Fjc.ultraBans.api.mutes.MuteList;
-import dev.Fjc.ultraBans.file.EntrySaver;
+import dev.Fjc.ultraBans.file.yaml.EntrySaver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -75,7 +75,7 @@ public class UltraMuteList<P extends PlayerProfile> implements MuteList<@NotNull
 
     @Override
     public LocalDateTime getRemainingTime(PlayerProfile target) {
-        return entries.get(target).getRemainingTimeAsLocalDate();
+        return entries.get(target).creationTime();
     }
 
     @Override

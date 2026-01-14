@@ -2,7 +2,8 @@ package dev.Fjc.ultraBans;
 
 import dev.Fjc.ultraBans.command.BanCommand;
 import dev.Fjc.ultraBans.command.MuteCommand;
-import dev.Fjc.ultraBans.file.EntrySaver;
+import dev.Fjc.ultraBans.file.database.SQLiteManager;
+import dev.Fjc.ultraBans.file.yaml.EntrySaver;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
 
@@ -20,6 +21,9 @@ public class Boot {
     private EntrySaver.MuteSaver<?> muteSaver;
     private EntrySaver.WarnSaver<?> warnSaver;
 
+    // Managers
+    private SQLiteManager sqLiteManager;
+
     public void load() {
         registerCommand("ban", this.banCommand = new BanCommand());
         registerCommand("mute", this.muteCommand = new MuteCommand());
@@ -33,6 +37,13 @@ public class Boot {
         warnSaver = new EntrySaver.WarnSaver<>();
         warnSaver.loadMap();
         if (!EntrySaver.loadEverything()) plugin.getLogger().warning("Something went wrong while attempting to load entry data!");
+
+        sqLiteManager = new SQLiteManager();
+        sqLiteManager.startConnection();
+    }
+
+    public SQLiteManager getSqLiteManager() {
+        return sqLiteManager;
     }
 
     private void registerCommand(String command, TabExecutor executor) {

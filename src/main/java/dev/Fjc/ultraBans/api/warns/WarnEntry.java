@@ -1,9 +1,10 @@
 package dev.Fjc.ultraBans.api.warns;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
+import dev.Fjc.ultraBans.api.Entry;
 import dev.Fjc.ultraBans.api.warns.backers.StringWarnList;
 import dev.Fjc.ultraBans.api.warns.backers.UltraWarnList;
-import dev.Fjc.ultraBans.file.EntrySaver;
+import dev.Fjc.ultraBans.file.yaml.EntrySaver;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,9 +15,9 @@ import java.time.LocalDateTime;
  * A player may have multiple warns.
  * @param <R> A player conforming object that will receive the warning
  */
-public class WarnEntry<R> {
+public class WarnEntry<R> implements Entry<R> {
 
-    private final @NotNull R target;
+    private final R target;
 
     private final String source;
 
@@ -39,20 +40,36 @@ public class WarnEntry<R> {
         if (reason == null) this.reason = "No reason specified"; else this.reason = reason;
     }
 
-    public @NotNull R getTarget() {
+    public WarnEntry(@Nullable R target) {
+        this.target = target;
+        this.source = null;
+        this.createdAt = LocalDateTime.MIN;
+        this.reason = null;
+    }
+
+    @Override
+    public R getTarget() {
         return this.target;
     }
 
-    public String getSource() {
+    @Override
+    public String source() {
         return this.source;
     }
 
-    public @NotNull LocalDateTime getCreatedAt() {
+    @Override
+    public @NotNull LocalDateTime creationTime() {
         return this.createdAt;
     }
 
-    public String getReason() {
+    @Override
+    public String reason() {
         return this.reason;
+    }
+
+    @Override
+    public Type type() {
+        return Type.WARN;
     }
 
     public boolean save() {

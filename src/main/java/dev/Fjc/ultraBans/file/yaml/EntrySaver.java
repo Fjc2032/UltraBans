@@ -1,12 +1,12 @@
-package dev.Fjc.ultraBans.file;
+package dev.Fjc.ultraBans.file.yaml;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import dev.Fjc.ultraBans.UltraBans;
+import dev.Fjc.ultraBans.api.Entry;
 import dev.Fjc.ultraBans.api.mutes.MuteEntry;
 import dev.Fjc.ultraBans.api.warns.WarnEntry;
-import org.antlr.v4.runtime.atn.WildcardTransition;
+import dev.Fjc.ultraBans.builders.Checker;
 import org.bukkit.BanEntry;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -14,7 +14,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.boot.convert.DurationStyle;
 
-import javax.lang.model.type.WildcardType;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
@@ -91,48 +90,57 @@ public class EntrySaver {
             ConfigurationSection section = configuration.getConfigurationSection("mutes");
             if (section == null) return finished;
 
-            for (String key : section.getKeys(false)) {
-                UUID id = UUID.fromString(key);
-                Player target = plugin.getServer().getPlayer(id);
-                if (target == null) {
-                    target = plugin.getServer().getPlayer(key);
-                    if (target == null) continue;
-                }
-                String path = "mutes." + key + ".";
-
-                String source = configuration.getString(path + "source");
-                Date creation = new Date(configuration.getString(path + "creation"));
-                Duration duration = DurationStyle.detectAndParse(configuration.getString(path + "duration", "0s"));
-                String reason = configuration.getString(path + "reason");
-
-                MuteEntry<@NotNull PlayerProfile> putter = new MuteEntry<>(target.getPlayerProfile(), source, creation, duration, reason);
-                finished.put(
-                        target.getPlayerProfile(),
-                        putter
-                );
-                manager.register(putter);
-            }
+            loadFromConfiguration(section, Entry.Type.MUTE).stream()
+                    .filter(pred -> pred instanceof MuteEntry<?>)
+                    .map(func -> (MuteEntry<?>) func)
+                    .filter(p -> p.getTarget() instanceof PlayerProfile)
+                    .map(f -> (MuteEntry<PlayerProfile>) f)
+                    .forEach(a -> {
+                        finished.put(a.getTarget(), a);
+                        manager.register(a);
+                    });
             return finished;
         }
 
+        public Map<String, MuteEntry<String>> loadStringMap() {
+
+            Map<String, MuteEntry<String>> entries = new HashMap<>();
+            MuteEntry.Manager manager = new MuteEntry.Manager();
+
+            ConfigurationSection section = configuration.getConfigurationSection("mutes");
+            if (section == null) return entries;
+
+            loadFromConfiguration(section, Entry.Type.MUTE).stream()
+                    .filter(pred -> pred instanceof MuteEntry<?>)
+                    .map(func -> (MuteEntry<?>) func)
+                    .filter(pred -> pred.getTarget() instanceof String)
+                    .map(func -> (MuteEntry<String>) func)
+                    .forEach(action -> {
+                        entries.put(action.getTarget(), action);
+                        manager.register(action);
+                    });
+
+            return entries;
+        }
+
         public boolean save(MuteEntry<P> entry) {
-            String path = "mutes." + entry.getMuteTarget() + ".";
-            if (entry.getMuteTarget() instanceof PlayerProfile profile) {
+            String path = "mutes." + entry.getTarget() + ".";
+            if (entry.getTarget() instanceof PlayerProfile profile) {
                 path = "mutes." + profile.getId() + ".";
                 configuration.set(path + "target", profile.getName());
             }
-            else configuration.set(path + "target", entry.getMuteTarget());
-            configuration.set(path + "source", entry.getSource());
+            else configuration.set(path + "target", entry.getTarget());
+            configuration.set(path + "source", entry.source());
             configuration.set(path + "creation", entry.getCreated().toString());
             configuration.set(path + "expiration", entry.getExpiry().toString());
             configuration.set(path + "duration", entry.getDuration());
-            configuration.set(path + "reason", entry.getReason());
+            configuration.set(path + "reason", entry.reason());
 
             return EntrySaver.save(configuration, file);
         }
 
         public boolean remove(MuteEntry<P> entry) {
-            String path = "mutes." + entry.getMuteTarget() + ".";
+            String path = "mutes." + entry.getTarget() + ".";
             configuration.set(path, null);
 
             return EntrySaver.save(configuration, file);
@@ -175,22 +183,15 @@ public class EntrySaver {
             ConfigurationSection section = configuration.getConfigurationSection("warns");
 
             if (section == null) return entries;
-            for (String key : section.getKeys(false)) {
-                String path = "warns." + key + ".";
-                final Player target = checkArgs(key);
-                if (target == null) continue;
-
-                String source = configuration.getString(path + "source");
-                LocalDateTime createdAt = LocalDateTime.parse(configuration.getString(path + "creation", new Date().toString()), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                String reason = configuration.getString(path + "reason");
-
-                WarnEntry<String> entry = new WarnEntry<>(
-                        target.getName(), source, createdAt, reason
-                );
-                entries.putIfAbsent(target.getName(), List.of());
-                entries.get(target.getName()).add(entry);
-            }
-
+            loadFromConfiguration(section, Entry.Type.WARN).stream()
+                    .filter(p -> p instanceof WarnEntry<?>)
+                    .map(f -> (WarnEntry<?>) f)
+                    .filter(p -> p.getTarget() instanceof String)
+                    .map(f -> (WarnEntry<String>) f)
+                    .forEach(a -> {
+                        entries.putIfAbsent(a.getTarget(), List.of());
+                        entries.get(a.getTarget()).add(a);
+                    });
             return entries;
         }
 
@@ -202,9 +203,9 @@ public class EntrySaver {
             } else {
                 configuration.set(path + "target", entry.getTarget());
             }
-            configuration.set(path + "source", entry.getSource());
-            configuration.set(path + "creation", entry.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            configuration.set(path + "reason", entry.getReason());
+            configuration.set(path + "source", entry.source());
+            configuration.set(path + "creation", entry.creationTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            configuration.set(path + "reason", entry.reason());
 
             return EntrySaver.save(configuration, file);
         }
@@ -237,6 +238,37 @@ public class EntrySaver {
         return player;
     }
 
+    private static List<Entry<?>> loadFromConfiguration(ConfigurationSection section, Entry.Type type) {
+        List<Entry<?>> entries = new ArrayList<>();
+        for (String key : section.getKeys(false)) {
+            Player target = checkArgs(key);
+            if (target == null) continue;
+
+            String path = switch (type) {
+                case MUTE -> "mutes." + key + ".";
+                case WARN -> "warns." + key + ".";
+                case BAN -> "bans." + key + ".";
+                case KICK -> "kick." + key + ".";
+                case UNKNOWN -> null;
+            };
+
+            if (path == null) return entries;
+            String source = configuration.getString(path + "source");
+            Date creation = Checker.parse(path + "creation");
+            @Nullable Duration duration = DurationStyle.detectAndParse(configuration.getString(path + "duration", "0s"));
+            @Nullable LocalDateTime createdAt = LocalDateTime.parse(configuration.getString(path + "creation", new Date().toString()), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            String reason = configuration.getString(path + "reason");
+
+
+            switch (type) {
+                case Entry.Type.MUTE -> entries.add(new MuteEntry<>(target, source, creation, duration, reason));
+                case WARN -> entries.add(new WarnEntry<>(target, source, createdAt, reason));
+            }
+        }
+
+        return entries;
+    }
+
     private static boolean save(YamlConfiguration yaml, File file) {
         if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
         try {
@@ -249,7 +281,4 @@ public class EntrySaver {
 
         return false;
     }
-
-
-
 }
