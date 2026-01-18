@@ -21,8 +21,15 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-public class Punishment {
+/**
+ * An abstract class that contains different builders to handle
+ * the execution of a punishment entry.
+ */
+public abstract class Punishment {
 
+    /**
+     * A builder that constructs a new ban entry.
+     */
     public static class BanBuilder {
         private final UltraBans plugin = UltraBans.getInstance();
 
@@ -69,6 +76,9 @@ public class Punishment {
         }
     }
 
+    /**
+     * A builder that constructs a new {@link MuteEntry}.
+     */
     public static class MuteBuilder {
 
         private final Player player;
@@ -123,14 +133,17 @@ public class Punishment {
         }
     }
 
+    /**
+     * A builder that constructs a new {@link WarnEntry}.
+     */
     public static class WarnBuilder {
 
         private final Player player;
-        private final Player executor;
+        private final String executor;
 
         private @Nullable String reason;
 
-        public WarnBuilder(Player player, Player executor) {
+        public WarnBuilder(Player player, String executor) {
             this.player = player;
             this.executor = executor;
         }
@@ -143,7 +156,7 @@ public class Punishment {
         public boolean warn() {
             WarnEntry<@NotNull PlayerProfile> entry = new WarnEntry<>(
                     player.getPlayerProfile(),
-                    executor.getName(),
+                    executor,
                     LocalDateTime.now(),
                     reason
             );

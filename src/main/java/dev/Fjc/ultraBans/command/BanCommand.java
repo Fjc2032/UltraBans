@@ -1,6 +1,7 @@
 package dev.Fjc.ultraBans.command;
 
 import dev.Fjc.ultraBans.UltraBans;
+import dev.Fjc.ultraBans.Util;
 import dev.Fjc.ultraBans.builders.Punishment;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -8,10 +9,8 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.boot.convert.DurationStyle;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 
 public class BanCommand implements TabExecutor {
@@ -47,7 +46,7 @@ public class BanCommand implements TabExecutor {
             }
         } else if (args.length == 2) {
             Player player =  plugin.getServer().getPlayer(args[0]);
-            Duration parsed = DurationStyle.detectAndParse(args[1]);
+            Duration parsed = Util.parse(args[1]);
             if (player != null) {
                 Punishment.BanBuilder punishment = new Punishment.BanBuilder(
                         player, sender instanceof Player executor ? executor : null
@@ -61,7 +60,7 @@ public class BanCommand implements TabExecutor {
             }
         } else if (args.length == 3) {
             Player player = plugin.getServer().getPlayer(args[0]);
-            Duration parsed = DurationStyle.detectAndParse(args[1]);
+            Duration parsed = Util.parse(args[1]);
             if (player != null) {
                 Punishment.BanBuilder punishment = new Punishment.BanBuilder(
                         player, sender instanceof Player executor ? executor : null
@@ -75,7 +74,7 @@ public class BanCommand implements TabExecutor {
             }
         } else if (args.length == 4) {
             Player player = plugin.getServer().getPlayer(args[0]);
-            Duration parsed = DurationStyle.detectAndParse(args[1]);
+            Duration parsed = Util.parse(args[1]);
             if (player != null) {
                 Punishment.BanBuilder punishment = new Punishment.BanBuilder(
                         player, sender instanceof Player executor ? executor : null
@@ -93,11 +92,7 @@ public class BanCommand implements TabExecutor {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (args.length == 1) {
-            List<String> online = new ArrayList<>();
-            for (Player player : plugin.getServer().getOnlinePlayers()) online.add(player.getName());
-            return online;
-        }
+        if (args.length == 1) return Util.onlinePlayerNameList();
         return List.of();
     }
 }

@@ -1,5 +1,7 @@
 package dev.Fjc.ultraBans.builders;
 
+import dev.Fjc.ultraBans.UltraBans;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -37,6 +39,22 @@ public abstract class Checker {
         if (!sender.isOp()) sender.sendMessage("You do not have permission to run this command.");
         if (target.isOp()) sender.sendMessage("This player has permissions that prevent that from receiving punishments from this plugin.");
         return sender.isOp() && !target.isOp() && !equals;
+    }
+
+    /**
+     * Tries to match the given string to a {@link Player} object.
+     * @param input The given string
+     * @return Some player, or null if no match is found
+     */
+    public static @Nullable Player parsePlayer(String input) {
+        final UltraBans plugin = UltraBans.getInstance();
+        Player player = plugin.getServer().getPlayer(input);
+        if (player == null) {
+            OfflinePlayer player1 = plugin.getServer().getOfflinePlayer(input);
+            player = player1.getPlayer();
+        }
+
+        return player;
     }
 
     /**

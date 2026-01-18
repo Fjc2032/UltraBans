@@ -40,7 +40,7 @@ public class StringWarnList<R extends String> implements WarnList<String>, WarnL
 
     @Override
     public @NotNull List<WarnEntry<String>> getWarns(String target) {
-        return entries.get(target);
+        return entries.getOrDefault(target, List.of());
     }
 
     @Override
@@ -54,12 +54,12 @@ public class StringWarnList<R extends String> implements WarnList<String>, WarnL
 
     @Override
     public int getWarnCount(String target) {
-        return entries.get(target).size();
+        return entries.getOrDefault(target, List.of()).size();
     }
 
     @Override
     public boolean removeWarn(String target, int index, String identifier) {
-        WarnEntry<?> removed = entries.get(target).remove(index);
+        WarnEntry<?> removed = entries.getOrDefault(target, List.of()).remove(index);
 
         return !entries.get(target).contains(removed);
     }

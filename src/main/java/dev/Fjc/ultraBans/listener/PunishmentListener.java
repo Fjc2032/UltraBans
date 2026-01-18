@@ -13,7 +13,6 @@ public class PunishmentListener implements Listener {
 
     @EventHandler
     public void onBan(PlayerCommandPreprocessEvent event) {
-
     }
 
     @EventHandler

@@ -2,6 +2,7 @@ package dev.Fjc.ultraBans.file.yaml;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import dev.Fjc.ultraBans.UltraBans;
+import dev.Fjc.ultraBans.Util;
 import dev.Fjc.ultraBans.api.Entry;
 import dev.Fjc.ultraBans.api.mutes.MuteEntry;
 import dev.Fjc.ultraBans.api.warns.WarnEntry;
@@ -12,7 +13,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.boot.convert.DurationStyle;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,11 +45,12 @@ public class EntrySaver {
                 "This file contains entries of all punishments handled by the UltraBans plugin.",
                 "It's not recommended to modify these directly, as it may corrupt the player profile."
         ));
+        Util.info("Load successful.");
         save(configuration, file);
 
         MuteSaver<@NotNull PlayerProfile> muteSaver = new MuteSaver<>();
         muteSaver.loadMap();
-        return file.exists();
+        return configuration != null;
     }
 
     public static class BanSaver<T> {
@@ -255,7 +256,7 @@ public class EntrySaver {
             if (path == null) return entries;
             String source = configuration.getString(path + "source");
             Date creation = Checker.parse(path + "creation");
-            @Nullable Duration duration = DurationStyle.detectAndParse(configuration.getString(path + "duration", "0s"));
+            @Nullable Duration duration = Util.parse(configuration.getString(path + "duration", "0s"));
             @Nullable LocalDateTime createdAt = LocalDateTime.parse(configuration.getString(path + "creation", new Date().toString()), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             String reason = configuration.getString(path + "reason");
 
@@ -280,5 +281,9 @@ public class EntrySaver {
         }
 
         return false;
+    }
+
+    public static @Nullable YamlConfiguration getConfiguration() {
+        return configuration;
     }
 }

@@ -6,3 +6,11 @@ prefix: UltraBans
 load: STARTUP
 authors: [ Fjc ]
 description: A modern punishment and punishment log system.
+
+commands:
+  ban:
+    description: Ban a player.
+  mute:
+    description: Mute a player.
+  warn:
+    description: Warn a player.

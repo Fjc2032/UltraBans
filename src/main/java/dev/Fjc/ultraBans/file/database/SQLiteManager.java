@@ -1,6 +1,7 @@
 package dev.Fjc.ultraBans.file.database;
 
 import dev.Fjc.ultraBans.UltraBans;
+import dev.Fjc.ultraBans.Util;
 import dev.Fjc.ultraBans.api.Entry;
 import dev.Fjc.ultraBans.api.mutes.MuteEntry;
 import org.jetbrains.annotations.NotNull;
@@ -9,16 +10,18 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 public class SQLiteManager {
     private static final UltraBans plugin = UltraBans.getInstance();
 
     private Connection connection;
-    boolean isOpen;
 
     // Start the database connection locally
-    public @Nullable Connection startConnection() {
+    public void startConnection() {
+        if (isOpen()) return;
 
+        Util.info("Preparing the database for connection...");
         try {
             File folder = plugin.getDataFolder();
             if (!folder.exists()) folder.mkdirs();
@@ -27,22 +30,21 @@ public class SQLiteManager {
             plugin.getLogger().warning("Something has gone wrong while loading the database!");
             plugin.getLogger().warning(e.getLocalizedMessage());
             plugin.getLogger().warning(e.getSQLState());
+            connection = null;
         } finally {
             if (connection != null) {
-                plugin.getLogger().info("The database connection was successful.");
-                isOpen = true;
+                Util.info("The connection to the database was successful.");
             }
         }
-
-        return connection;
     }
 
     // Ends said connection
     public void closeConnection() {
+        Util.info("Preparing to shut down the database...");
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                isOpen = false;
+                Util.info("Shutdown complete.");
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Something went horribly wrong while trying to close the database!!");
@@ -50,12 +52,24 @@ public class SQLiteManager {
         }
     }
 
+    public final boolean isOpen() {
+        boolean open;
+        try {
+            open = connection != null && !connection.isClosed();
+        } catch (SQLException e) {
+            Util.err("The database is closed!");
+            Util.err(Arrays.toString(e.getStackTrace()));
+            open = false;
+        }
+        return open;
+    }
+
     /**
      * Builds a new table for entries to use.
      * @return True if the table was created or already exists, false if something went wrong
      */
     public boolean buildTable() {
-        if (!isOpen) return false;
+        if (!isOpen()) return false;
         String table = "CREATE TABLE IF NOT EXISTS entries(" +
                 "autoId INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "punishID TEXT NOT NULL, " +
@@ -70,7 +84,7 @@ public class SQLiteManager {
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(table);
             return true;
-        } catch (SQLException | NullPointerException e) {
+        } catch (SQLException e) {
             plugin.getLogger().warning("Something has gone wrong with the database!");
             plugin.getLogger().warning("Likely related to some table creation.");
             plugin.getLogger().warning(e.getLocalizedMessage());
@@ -84,14 +98,14 @@ public class SQLiteManager {
      * @return True if the action was successful, false if something went wrong
      */
     public boolean addEntry(@NotNull Entry<?> entry) {
-        if (!isOpen) return false;
+        if (!isOpen()) return false;
 
         String id = entry.id().toString();
         String type = entry.type().toString();
         String target = entry.targetToString();
         String executor = entry.source();
         String reason = entry.reason();
-        String created = entry.creationTime().toString();
+        String created = Util.formatDateTime(entry.creationTime());
         String duration = null;
         if (entry instanceof MuteEntry<?> muteEntry) {
             duration = muteEntry.getDuration().toString();
@@ -127,7 +141,7 @@ public class SQLiteManager {
      * so you should use {@link SQLiteManager#removeEntry(String, String)} to target a specific entry.
      */
     public boolean removeEntry(String target) {
-        if (!isOpen) return false;
+        if (!isOpen()) return false;
 
         String remover = "DELETE FROM entries WHERE player = ?";
         try (PreparedStatement p = connection.prepareStatement(remover)) {
@@ -147,7 +161,7 @@ public class SQLiteManager {
      * @return True if the removal was successful, false if the record does not exist or something else went wrong
      */
     public boolean removeEntry(String target, String id) {
-        if (!isOpen) return false;
+        if (!isOpen()) return false;
 
         String remover = "DELETE FROM entries WHERE player = ? AND punishID = ?";
 
@@ -174,13 +188,13 @@ public class SQLiteManager {
      * @return True if the update was successful, false if no changes were made or something went wrong
      */
     public boolean updateEntry(@NotNull String target, @NotNull final String ID, @NotNull String type, @Nullable String executor, @Nullable String reason, @Nullable LocalDateTime created) {
-        if (!isOpen) return false;
+        if (!isOpen()) return false;
 
         String updater = "UPDATE entries SET executor = COALESCE(?, executor), reason = COALESCE(?, reason), createdAt = COALESCE(?, createdAt) WHERE player = ? AND punishID = ? AND punishType = ?";
         try (PreparedStatement p = connection.prepareStatement(updater)) {
             p.setString(1, executor);
             p.setString(2, reason);
-            if (created != null) p.setString(3, created.toString());
+            if (created != null) p.setString(3, Util.formatDateTime(created));
             else p.setNull(3, Types.VARCHAR);
 
             p.setString(4, target);
@@ -204,7 +218,7 @@ public class SQLiteManager {
      * @see SQLiteManager#removeEntry(String, String)
      */
     public void wipeDir() {
-        if (!isOpen) return;
+        if (!isOpen()) return;
 
         String wiper = "DELETE FROM entries";
         try (PreparedStatement p = connection.prepareStatement(wiper)) {
@@ -219,9 +233,12 @@ public class SQLiteManager {
      * Removes all entries in the table that match the given type
      * @param type The type of entry to remove
      * @return True if the removal was successful, false if the records do not exist or something went wrong
+     * @apiNote This removes ALL entries of a given type! If you only want to remove a specific entry, try
+     * {@link SQLiteManager#removeEntry(String, String)} or {@link SQLiteManager#removeEntry(String)}.
+     * @see SQLiteManager#wipeDir()
      */
     public boolean wipeDir(Entry.Type type) {
-        if (!isOpen) return false;
+        if (!isOpen()) return false;
 
         String remover = "DELETE FROM entries WHERE punishType = ?";
         try (PreparedStatement p = connection.prepareStatement(remover)) {

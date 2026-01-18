@@ -43,7 +43,7 @@ public class UltraWarnList<R extends PlayerProfile> implements WarnList<PlayerPr
 
     @Override
     public @Nullable WarnEntry<PlayerProfile> addWarn(PlayerProfile target, String source, LocalDateTime createdAt, String reason) {
-        List<WarnEntry<@NotNull PlayerProfile>> currents = entries.get(target);
+        List<WarnEntry<@NotNull PlayerProfile>> currents = entries.getOrDefault(target, List.of());
         WarnEntry<@NotNull PlayerProfile> newEntry = new WarnEntry<>(target, source, createdAt, reason);
         currents.add(newEntry);
 
@@ -57,23 +57,23 @@ public class UltraWarnList<R extends PlayerProfile> implements WarnList<PlayerPr
 
     @Override
     public int getWarnCount(PlayerProfile target) {
-        return entries.get(target).size();
+        return entries.getOrDefault(target, List.of()).size();
     }
 
     @Override
     public boolean removeWarn(PlayerProfile target, int index, String identifier) {
-        var removed = entries.get(target).remove(index);
+        var removed = entries.getOrDefault(target, List.of()).remove(index);
         return saver.remove(removed) && manager.removeEntry(target.getName(), identifier);
     }
 
     @Override
     public boolean clearWarns(PlayerProfile target) {
-        entries.get(target).clear();
-        for (WarnEntry<@NotNull PlayerProfile> entry : entries.get(target)) {
+        entries.getOrDefault(target, List.of()).clear();
+        for (WarnEntry<@NotNull PlayerProfile> entry : entries.getOrDefault(target, List.of())) {
             saver.remove(entry);
             manager.removeEntry(target.getName());
         }
-        return entries.get(target).isEmpty();
+        return entries.getOrDefault(target, List.of()).isEmpty();
     }
 
     @Override
@@ -90,7 +90,7 @@ public class UltraWarnList<R extends PlayerProfile> implements WarnList<PlayerPr
 
     @Override
     public void save(PlayerProfile target) {
-        for (WarnEntry<@NotNull PlayerProfile> entry : entries.get(target)) {
+        for (WarnEntry<@NotNull PlayerProfile> entry : entries.getOrDefault(target, List.of())) {
             saver.save(entry);
         }
     }

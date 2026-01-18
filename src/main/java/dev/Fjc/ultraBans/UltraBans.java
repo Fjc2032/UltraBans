@@ -1,27 +1,31 @@
 package dev.Fjc.ultraBans;
 
-import dev.Fjc.ultraBans.file.database.SQLiteManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 public final class UltraBans extends JavaPlugin {
 
     private static UltraBans instance;
 
-    private static final Boot booter = new Boot();
+    private static Boot booter;
 
     @Override
     public void onEnable() {
         instance = this;
+        booter = new Boot(getInstance());
         booter.load();
 
     }
 
     @Override
     public void onDisable() {
+        booter.unload();
+        booter = null;
         instance = null;
     }
 
-    public static UltraBans getInstance() {
+    public static @NotNull UltraBans getInstance() {
+        if (instance == null) instance = new UltraBans();
         return instance;
     }
 
